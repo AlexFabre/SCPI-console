@@ -67,6 +67,7 @@ class SCPIConsole:
 
         # Bind the up arrow key to a function that sets the last message in the list as the value of the message entry field
         self.message_entry.bind('<Up>', lambda event: self.display_previous_message())
+        self.message_entry.bind('<Down>', lambda event: self.display_next_message())
 
     def update_received_text(self, data):
         self.received_text.config(state = "normal")
@@ -161,6 +162,16 @@ class SCPIConsole:
             # Set the value of the message entry field to the last message
             self.message_entry.delete(0, tk.END)
             self.message_entry.insert(0, previous_message)
+    
+    def display_next_message(self):
+        if len(self.messages) > len(self.prev_messages):
+            # Get next message in prev_messages list
+            next_message = self.messages[len(self.prev_messages)+1]
+            # Set the value of the message entry field to the next message
+            self.message_entry.delete(0, tk.END)
+            self.message_entry.insert(0, next_message)
+            # Append next message to prev_messages list
+            self.prev_messages.append(self.messages[len(self.prev_messages)])
     
     def clear_received_text(self):
         self.received_text.config(state = "normal")
