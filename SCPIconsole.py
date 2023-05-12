@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox as tkMessageBox
 import threading
 import serial.tools.list_ports
+from datetime import datetime
 
 class SCPIConsole:
     def __init__(self):
@@ -58,8 +59,12 @@ class SCPIConsole:
 
         self.ser = None
 
+        self.root.unbind_all("<Tab>")
+        self.root.unbind_all("<<NextWindow>>")
+
         # Bind the <Return> event to the send_data() function
         self.message_entry.bind("<Return>", lambda event: self.send_data())
+        self.message_entry.bind("<Tab>", lambda event: self.send_tab_command())
 
         # Initialize messages list
         self.messages = []
@@ -69,22 +74,14 @@ class SCPIConsole:
         self.message_entry.bind('<Up>', lambda event: self.display_previous_message())
         self.message_entry.bind('<Down>', lambda event: self.display_next_message())
 
-    def update_received_text(self, data):
-        self.received_text.config(state = "normal")
-        if "ERROR" in data.upper():
-            self.received_text.insert(tk.END, data + "\n", "received_error")
-            self.received_text.tag_config("received_error", foreground="firebrick3", font=("TkDefaultFont", 11, "bold"))
-        else:
-            self.received_text.insert(tk.END, data + "\n")
-        self.received_text.see("end")
-        self.received_text.config(state = "disabled")
 
     def receive_data(self):
         while True:
             if self.ser.in_waiting > 0:
                 try:
                     received_data = self.ser.readline().decode('utf-8').strip()
-                    self.update_received_text(received_data)
+                    if bool(received_data):
+                        self.display_response(received_data)
                 except:
                     pass
 
@@ -144,16 +141,31 @@ class SCPIConsole:
             cmd = cmd + "\r\n"
 
         self.ser.write(cmd.encode())
-        self.received_text.config(state = "normal")
-        self.received_text.insert(tk.END, message + "\n", "sent_message")
-        self.received_text.tag_config("sent_message", foreground="dodgerblue", font=("TkDefaultFont", 11, "bold"))
-        self.received_text.see("end")
-        self.received_text.config(state = "disabled")
+        self.display_command(message)
         # Clear the message entry field after sending the message
         self.message_entry.delete(0, tk.END)
         # Append message to messages list
         self.messages.append(message)
         self.prev_messages = list(self.messages)
+    
+    def send_tab_command(self):
+        message = self.message_entry.get().upper()
+
+        if ':' in message:
+            last_colon_position = message.rfind(":")
+            message = message[:last_colon_position] + ":"
+        else:
+            message = ""
+
+        message += "HELP?"
+
+        cmd = message
+
+        if self.tail_var.get() == True:
+            cmd = cmd + "\r\n"
+
+        self.ser.write(cmd.encode())
+        self.display_command(message)
 
     def display_previous_message(self):
         if len(self.prev_messages) > 0:
@@ -176,6 +188,29 @@ class SCPIConsole:
     def clear_received_text(self):
         self.received_text.config(state = "normal")
         self.received_text.delete("1.0", tk.END)
+        self.received_text.config(state = "disabled")
+
+    def display_command(self, message):
+        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        self.received_text.config(state = "normal")
+        self.received_text.insert(tk.END, "[" + timestamp + "] ", "timestamp")
+        self.received_text.tag_config("timestamp", spacing3=5, foreground="hotpink", font=("courier", 10))
+        self.received_text.insert(tk.END, message + "\n", "sent_message")
+        self.received_text.tag_config("sent_message", foreground="turquoise", font=("TkDefaultFont", 11, "bold"))
+        self.received_text.see("end")
+        self.received_text.config(state = "disabled")
+
+    def display_response(self, message):
+        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        self.received_text.config(state = "normal")
+        self.received_text.insert(tk.END, "[" + timestamp + "] ", "timestamp")
+        self.received_text.tag_config("timestamp", spacing3=5, foreground="hotpink", font=("courier", 10))
+        if "ERROR" in message.upper():
+            self.received_text.insert(tk.END, message + "\n", "received_error")
+            self.received_text.tag_config("received_error", foreground="orangered", font=("TkDefaultFont", 11, "bold"))
+        else:
+            self.received_text.insert(tk.END, message + "\n")
+        self.received_text.see("end")
         self.received_text.config(state = "disabled")
 
     def main(self):
