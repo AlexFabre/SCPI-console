@@ -40,11 +40,10 @@ class SCPIConsole:
 
 
         self.message_frame = tk.Frame(self.root)
-        self.message_frame.pack(side=tk.BOTTOM, padx = 50, pady = 20)
+        self.message_frame.pack(fill=tk.X, side=tk.BOTTOM, padx = 50, pady = 20)
 
         self.message_entry = tk.Entry(self.message_frame)
-        self.message_entry.pack(side=tk.LEFT)
-        self.message_entry.configure(width=20)
+        self.message_entry.pack(expand=True, fill=tk.X, side=tk.LEFT)
 
         self.tail_var = tk.BooleanVar(self.message_frame, value = True)
         self.tail_checkbox = tk.Checkbutton(self.message_frame, text='Tail CRLF (\\r\\n)', variable=self.tail_var)
